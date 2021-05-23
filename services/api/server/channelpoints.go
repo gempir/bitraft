@@ -68,6 +68,7 @@ type channelPointRedemption struct {
 }
 
 var bttvRegex = regexp.MustCompile(`https?:\/\/betterttv.com\/emotes\/(\w*)`)
+var ffzRegex = regexp.MustCompile(`https?:\/\/www\.frankerfacez\.com\/emoticon\/(\w*)\-`)
 
 func (s *Server) subscribeChannelPoints(userID string) {
 	// Twitch doesn't need a user token here, always an app token eventhough the user has to authenticate beforehand.
@@ -200,8 +201,11 @@ func (s *Server) handleChannelPointsRedemption(c echo.Context) error {
 		return err
 	}
 
+	success := false
+	ourReward := false
+
 	if userCfg.Rewards.BttvReward != nil && userCfg.Rewards.BttvReward.Enabled && userCfg.Rewards.BttvReward.ID == redemption.Event.Reward.ID {
-		success := false
+		ourReward = true
 
 		matches := bttvRegex.FindAllStringSubmatch(redemption.Event.UserInput, -1)
 		if len(matches) == 1 && len(matches[0]) == 2 {
@@ -222,7 +226,31 @@ func (s *Server) handleChannelPointsRedemption(c echo.Context) error {
 		} else {
 			s.store.PublishSpeakerMessage(redemption.Event.BroadcasterUserLogin, fmt.Sprintf("⚠️ Failed to add emote from @%s error: no bttv link found in message", redemption.Event.UserName))
 		}
+	}
 
+	if userCfg.Rewards.FfzReward != nil && userCfg.Rewards.FfzReward.Enabled && userCfg.Rewards.FfzReward.ID == redemption.Event.Reward.ID {
+		matches := ffzRegex.FindAllStringSubmatch(redemption.Event.UserInput, -1)
+		if len(matches) == 1 && len(matches[0]) == 2 {
+			emoteAdded, emoteRemoved, err := s.emotechief.SetFfzEmote(redemption.Event.BroadcasterUserID, matches[0][1], redemption.Event.BroadcasterUserLogin)
+			if err != nil {
+				log.Warnf("Ffz error %s %s", redemption.Event.BroadcasterUserLogin, err)
+				s.store.PublishSpeakerMessage(redemption.Event.BroadcasterUserLogin, fmt.Sprintf("⚠️ Failed to add emote from: @%s error: %s", redemption.Event.UserName, err.Error()))
+			} else if emoteAdded != nil && emoteRemoved != nil {
+				success = true
+				s.store.PublishSpeakerMessage(redemption.Event.BroadcasterUserLogin, fmt.Sprintf("✅ Added new emote: %s redeemed by @%s removed: %s", emoteAdded.Emote.Name, redemption.Event.UserName, emoteRemoved.Emote.Name))
+			} else if emoteAdded != nil {
+				success = true
+				s.store.PublishSpeakerMessage(redemption.Event.BroadcasterUserLogin, fmt.Sprintf("✅ Added new emote: %s redeemed by @%s", emoteAdded.Emote.Name, redemption.Event.UserName))
+			} else {
+				success = true
+				s.store.PublishSpeakerMessage(redemption.Event.BroadcasterUserLogin, fmt.Sprintf("✅ Added new emote: [unknown] redeemed by @%s", redemption.Event.UserName))
+			}
+		} else {
+			s.store.PublishSpeakerMessage(redemption.Event.BroadcasterUserLogin, fmt.Sprintf("⚠️ Failed to add emote from @%s error: no ffz link found in message", redemption.Event.UserName))
+		}
+	}
+
+	if ourReward {
 		token, err := s.getUserAccessToken(redemption.Event.BroadcasterUserID)
 		if err != nil {
 			log.Errorf("Failed to get userAccess token to update redemption status for %s", redemption.Event.BroadcasterUserID)

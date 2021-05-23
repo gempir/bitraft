@@ -16,8 +16,10 @@ export function Dashboard() {
 
     // force re-mount when switching the channel to manage, to re-render forms and their defaultValues
     return <div key={renderKey}>
-        <Menu userConfig={userCfg} setUserConfig={setUserConfig} />
-        <BttvForm userConfig={userCfg} setUserConfig={setUserConfig} fetchConfig={fetchConfig} />
-        <FfzForm userConfig={userCfg} setUserConfig={setUserConfig} fetchConfig={fetchConfig} />
+         <Menu userConfig={userCfg} setUserConfig={setUserConfig} />
+        <div className="flex">
+            <BttvForm userConfig={userCfg} setUserConfig={setUserConfig} fetchConfig={fetchConfig} />
+            <FfzForm userConfig={userCfg} setUserConfig={setUserConfig} fetchConfig={fetchConfig} />
+        </div>
     </div>
 }
