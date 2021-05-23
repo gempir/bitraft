@@ -27,6 +27,7 @@ type Redemption struct {
 
 const (
 	bttvPrompt = "Add a BetterTTV emote! In the text field, send a link to the BetterTTV emote. powered by bitraft.gempir.com"
+	ffzPrompt  = "Add a FrankerFraceZ emote! In the text field, send a link to the Ffz emote. powered by bitraft.gempir.com"
 )
 
 type channelPointRedemption struct {
@@ -250,7 +251,7 @@ func (s *Server) handleChallenge(c echo.Context, body []byte) error {
 	return c.String(http.StatusOK, event.Challenge)
 }
 
-func (s *Server) createOrUpdateChannelPointReward(userID string, request BttvReward, rewardID string) (BttvReward, error) {
+func (s *Server) createOrUpdateChannelPointRewardBttv(userID string, request BttvReward, rewardID string) (BttvReward, error) {
 	token, err := s.getUserAccessToken(userID)
 	if err != nil {
 		return BttvReward{}, err
@@ -290,6 +291,63 @@ func (s *Server) createOrUpdateChannelPointReward(userID string, request BttvRew
 	}
 
 	return BttvReward{
+		Title:                             resp.Title,
+		Prompt:                            resp.Prompt,
+		Cost:                              resp.Cost,
+		Backgroundcolor:                   resp.BackgroundColor,
+		IsMaxPerStreamEnabled:             resp.MaxPerStreamSetting.IsEnabled,
+		MaxPerStream:                      resp.MaxPerStreamSetting.MaxPerStream,
+		IsMaxPerUserPerStreamEnabled:      resp.MaxPerUserPerStreamSetting.IsEnabled,
+		MaxPerUserPerStream:               resp.MaxPerUserPerStreamSetting.MaxPerUserPerStream,
+		IsUserInputRequired:               resp.IsUserInputRequired,
+		IsGlobalCooldownEnabled:           resp.GlobalCooldownSetting.IsEnabled,
+		GlobalCooldownSeconds:             resp.GlobalCooldownSetting.GlobalCooldownSeconds,
+		ShouldRedemptionsSkipRequestQueue: resp.ShouldRedemptionsSkipRequestQueue,
+		Enabled:                           resp.IsEnabled,
+		ID:                                resp.ID,
+	}, nil
+}
+
+func (s *Server) createOrUpdateChannelPointRewardFfz(userID string, request FfzReward, rewardID string) (FfzReward, error) {
+	token, err := s.getUserAccessToken(userID)
+	if err != nil {
+		return FfzReward{}, err
+	}
+
+	req := helix.CreateCustomRewardRequest{
+		Title:                             request.Title,
+		Prompt:                            ffzPrompt,
+		Cost:                              request.Cost,
+		IsEnabled:                         request.Enabled,
+		BackgroundColor:                   request.Backgroundcolor,
+		IsUserInputRequired:               true,
+		ShouldRedemptionsSkipRequestQueue: false,
+		IsMaxPerStreamEnabled:             false,
+		IsMaxPerUserPerStreamEnabled:      false,
+		IsGlobalCooldownEnabled:           false,
+	}
+
+	if request.MaxPerStream != 0 {
+		req.IsMaxPerStreamEnabled = true
+		req.MaxPerStream = request.MaxPerStream
+	}
+
+	if request.MaxPerUserPerStream != 0 {
+		req.IsMaxPerUserPerStreamEnabled = true
+		req.MaxPerUserPerStream = request.MaxPerUserPerStream
+	}
+
+	if request.GlobalCooldownSeconds != 0 {
+		req.IsGlobalCooldownEnabled = true
+		req.GlobalCoolDownSeconds = request.GlobalCooldownSeconds
+	}
+
+	resp, err := s.helixUserClient.CreateOrUpdateReward(userID, token.AccessToken, req, rewardID)
+	if err != nil {
+		return FfzReward{}, err
+	}
+
+	return FfzReward{
 		Title:                             resp.Title,
 		Prompt:                            resp.Prompt,
 		Cost:                              resp.Cost,

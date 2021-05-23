@@ -12,9 +12,28 @@ export interface UserConfig {
 
 export interface Rewards {
     Bttv: null | BttvReward
+    Ffz: null | FfzReward
 }
 
 export interface BttvReward {
+    title: string;
+    prompt?: string;
+    cost: number;
+    backgroundColor?: string;
+    isMaxPerStreamEnabled?: boolean;
+    maxPerStream?: number;
+    isUserInputRequired?: boolean;
+    isMaxPerUserPerStreamEnabled?: boolean;
+    maxPerUserPerStream?: number;
+    isGlobalCooldownEnabled?: boolean;
+    globalCooldownSeconds?: number;
+    shouldRedemptionsSkipRequestQueue?: boolean;
+    enabled?: boolean;
+    isDefault: boolean;
+    ID?: string;
+}
+
+export interface FfzReward {
     title: string;
     prompt?: string;
     cost: number;

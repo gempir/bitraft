@@ -20,9 +20,28 @@ type UserConfig struct {
 
 type Rewards struct {
 	*BttvReward `json:"Bttv"`
+	*FfzReward  `json:"Ffz"`
 }
 
 type BttvReward struct {
+	Title                             string `json:"title"`
+	Prompt                            string `json:"prompt"`
+	Cost                              int    `json:"cost"`
+	Backgroundcolor                   string `json:"backgroundColor"`
+	IsMaxPerStreamEnabled             bool   `json:"isMaxPerStreamEnabled"`
+	MaxPerStream                      int    `json:"maxPerStream"`
+	IsUserInputRequired               bool   `json:"isUserInputRequired"`
+	IsMaxPerUserPerStreamEnabled      bool   `json:"isMaxPerUserPerStreamEnabled"`
+	MaxPerUserPerStream               int    `json:"maxPerUserPerStream"`
+	IsGlobalCooldownEnabled           bool   `json:"isGlobalCooldownEnabled"`
+	GlobalCooldownSeconds             int    `json:"globalCooldownSeconds"`
+	ShouldRedemptionsSkipRequestQueue bool   `json:"shouldRedemptionsSkipRequestQueue"`
+	Enabled                           bool   `json:"enabled"`
+	IsDefault                         bool   `json:"isDefault"`
+	ID                                string
+}
+
+type FfzReward struct {
 	Title                             string `json:"title"`
 	Prompt                            string `json:"prompt"`
 	Cost                              int    `json:"cost"`
@@ -52,6 +71,7 @@ func createDefaultUserConfig() UserConfig {
 		},
 		Rewards: Rewards{
 			BttvReward: createDefaultBttvReward(),
+			FfzReward:  createDefaultFfzReward(),
 		},
 	}
 }
@@ -61,6 +81,16 @@ func createDefaultBttvReward() *BttvReward {
 		IsDefault: true,
 		Title:     "BetterTTV Emote",
 		Prompt:    bttvPrompt,
+		Enabled:   false,
+		Cost:      10000,
+	}
+}
+
+func createDefaultFfzReward() *FfzReward {
+	return &FfzReward{
+		IsDefault: true,
+		Title:     "FrankerFaceZ Emote",
+		Prompt:    ffzPrompt,
 		Enabled:   false,
 		Cost:      10000,
 	}
@@ -182,6 +212,10 @@ func (s *Server) getUserConfig(userID string) (UserConfig, error, bool) {
 
 	if userConfig.Rewards.BttvReward == nil {
 		userConfig.Rewards.BttvReward = createDefaultBttvReward()
+	}
+
+	if userConfig.Rewards.FfzReward == nil {
+		userConfig.Rewards.FfzReward = createDefaultFfzReward()
 	}
 
 	return userConfig, nil, false
@@ -307,15 +341,9 @@ func (s *Server) processConfig(userID string, body []byte, c echo.Context) (User
 		saveTarget = ownerUserID
 	}
 
-	if !newConfig.Rewards.BttvReward.IsDefault {
-		reward, err := s.createOrUpdateChannelPointReward(saveTarget, *newConfig.Rewards.BttvReward, oldConfig.Rewards.BttvReward.ID)
-		if err != nil {
-			return UserConfig{}, err
-		}
-
-		configToSave.Rewards.BttvReward = &reward
-	} else {
-		configToSave.Rewards.BttvReward = createDefaultBttvReward()
+	configToSave, err = s.processRewards(saveTarget, newConfig, oldConfig, configToSave)
+	if err != nil {
+		return UserConfig{}, err
 	}
 
 	err = s.saveConfig(saveTarget, configToSave)
@@ -346,6 +374,32 @@ func (s *Server) processConfig(userID string, body []byte, c echo.Context) (User
 	}
 
 	configToSave.Protected.EditorFor = newEditorForNames
+
+	return configToSave, nil
+}
+
+func (s *Server) processRewards(userID string, newConfig UserConfig, oldConfig UserConfig, configToSave UserConfig) (UserConfig, error) {
+	if !newConfig.Rewards.BttvReward.IsDefault {
+		reward, err := s.createOrUpdateChannelPointRewardBttv(userID, *newConfig.Rewards.BttvReward, oldConfig.Rewards.BttvReward.ID)
+		if err != nil {
+			return UserConfig{}, err
+		}
+
+		configToSave.Rewards.BttvReward = &reward
+	} else {
+		configToSave.Rewards.BttvReward = createDefaultBttvReward()
+	}
+
+	if !newConfig.Rewards.FfzReward.IsDefault {
+		reward, err := s.createOrUpdateChannelPointRewardFfz(userID, *newConfig.Rewards.FfzReward, oldConfig.Rewards.FfzReward.ID)
+		if err != nil {
+			return UserConfig{}, err
+		}
+
+		configToSave.Rewards.FfzReward = &reward
+	} else {
+		configToSave.Rewards.FfzReward = createDefaultFfzReward()
+	}
 
 	return configToSave, nil
 }
