@@ -41,7 +41,7 @@ func NewClient(clientID, clientSecret, redirectURI string, eventSubSecret string
 		panic(err)
 	}
 
-	resp, err := client.RequestAppAccessToken([]string{"channel:read:redemptions"})
+	resp, err := client.RequestAppAccessToken([]string{"channel:read:redemptions channel:manage:redemptions channel:read:predictions channel:manage:predictions"})
 	if err != nil {
 		panic(err)
 	}
