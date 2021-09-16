@@ -54,6 +54,13 @@ func (s *Server) handleCallback(c echo.Context) error {
 	}
 	s.store.PublishIngesterMessage(store.IngesterMsgJoin, validateResp.Data.Login)
 
+	hResp, err := s.helixClient.Client.RequestAppAccessToken([]string{"channel:read:redemptions channel:manage:redemptions channel:read:predictions channel:manage:predictions"})
+	if err != nil {
+		log.Error(err)
+	}
+	log.Infof("Requested access token, response: %d, expires in: %d", hResp.StatusCode, hResp.Data.ExpiresIn)
+	s.helixClient.Client.SetAppAccessToken(hResp.Data.AccessToken)
+
 	go s.subscribePredictions(validateResp.Data.UserID)
 
 	return s.dashboardRedirect(c, token)

@@ -15,13 +15,6 @@ import (
 )
 
 func (s *Server) subscribePredictions(userID string) {
-	resp, err := s.helixClient.Client.RequestAppAccessToken([]string{"channel:read:redemptions channel:manage:redemptions channel:read:predictions channel:manage:predictions"})
-	if err != nil {
-		panic(err)
-	}
-	log.Infof("Requested access token, response: %d, expires in: %d", resp.StatusCode, resp.Data.ExpiresIn)
-	s.helixClient.Client.SetAppAccessToken(resp.Data.AccessToken)
-
 	response, err := s.helixClient.CreateEventSubSubscription(userID, s.cfg.WebhookApiBaseUrl+"/api/prediction/begin", "channel.prediction.begin")
 	if err != nil {
 		log.Errorf("Error subscribing: %s", err)
