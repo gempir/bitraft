@@ -1,3 +1,7 @@
+# Deactivated
+
+This bot has been deactivated, but all functionality has been moved to https://github.com/gempir/gempbot
+
 # Development
 
 Requires
